@@ -12,6 +12,7 @@ from PyQt5.QtCore import Qt, QRect, QTimer, QPoint
 from PyQt5.QtGui import QPainter, QColor, QFont, QPixmap, QPen, QBrush, QAction
 from PIL import Image, ImageFilter, ImageDraw
 
+# ============== KART SINIFI ==============
 class Card:
     def __init__(self, card_id, pair_id, icon):
         self.id = card_id
@@ -28,26 +29,27 @@ SELECTED_ICONS = [
     '🌲', '🌸', '🎮', '🎯', '📱', '🎬', '🧩', '🎭'
 ]
 
+# ============== SKOR YÖNETİCİSİ ==============
 class ScoreManager:
-    """Skor sistemi (adım sayısına göre sıralı)"""
+    """Skor sistemi - her kart adedi için ayrı skor"""
     def __init__(self):
         self.scores_file = Path('/tmp/memory_game/scores_steps.json')
         self.leaderboard = self.load_scores()
     
     def load_scores(self):
-        """Önceki skorları yükle"""
         if self.scores_file.exists():
             try:
                 with open(self.scores_file, 'r', encoding='utf-8') as f:
                     data = json.load(f)
-                    # Adım sayısına göre sırala (az adım = üstte)
-                    return sorted(data, key=lambda x: x['moves'])[:10]
+                    return data
             except:
-                return []
-        return []
+                return {'4x4': [], '4x6': [], '5x6': [], '4x8': [], '6x8': []}
+        return {'4x4': [], '4x6': [], '5x6': [], '4x8': [], '6x8': []}
     
-    def add_score(self, player_name, score, moves, matched_pairs):
-        """Yeni skoru ekle"""
+    def add_score(self, player_name, score, moves, matched_pairs, grid_size):
+        if grid_size not in self.leaderboard:
+            self.leaderboard[grid_size] = []
+        
         entry = {
             'name': player_name,
             'moves': moves,
@@ -55,29 +57,31 @@ class ScoreManager:
             'date': datetime.now().strftime('%Y-%m-%d %H:%M')
         }
         
-        self.leaderboard.append(entry)
-        # Adım sayısına göre sırala
-        self.leaderboard = sorted(self.leaderboard, key=lambda x: x['moves'])[:10]
+        self.leaderboard[grid_size].append(entry)
+        self.leaderboard[grid_size] = sorted(self.leaderboard[grid_size], key=lambda x: x['moves'])[:10]
         
-        # Kaydet
         try:
             with open(self.scores_file, 'w', encoding='utf-8') as f:
                 json.dump(self.leaderboard, f, ensure_ascii=False, indent=2)
         except Exception as e:
             print(f"Skor kaydında hata: {e}")
         
-        return self.leaderboard
+        return self.leaderboard[grid_size]
     
-    def get_top_scores(self):
-        """Top 10'u döndür"""
-        return self.leaderboard
+    def get_top_scores(self, grid_size='6x8'):
+        return self.leaderboard.get(grid_size, [])
+
 
 class GameWidget(QWidget):
-    def __init__(self, player_name, score_manager):
+    def __init__(self, player_name, score_manager, grid_size='6x8'):
         super().__init__()
         
         self.player_name = player_name
         self.score_manager = score_manager
+        self.grid_size = grid_size
+        
+        self.rows, self.cols = self.parse_grid(grid_size)
+        self.total_pairs = (self.rows * self.cols) // 2
         
         self.cards = []
         self.first_flipped = -1
@@ -101,7 +105,11 @@ class GameWidget(QWidget):
         
         self.initialize_cards()
         self.setMinimumSize(1400, 900)
-
+    
+    def parse_grid(self, grid_size):
+        sizes = {'4x4': (4, 4), '4x6': (4, 6), '5x6': (5, 6), '4x8': (4, 8), '6x8': (6, 8)}
+        return sizes.get(grid_size, (6, 8))
+    
     def load_or_create_background(self):
         """Modern Office-style arka plan"""
         try:
@@ -132,10 +140,14 @@ class GameWidget(QWidget):
 
     def initialize_cards(self):
         self.cards = []
-        icons = SELECTED_ICONS * 2
+        total_cards = self.rows * self.cols
+        needed_pairs = total_cards // 2
+        icons = SELECTED_ICONS[:needed_pairs] * 2
         random.shuffle(icons)
         
-        for i in range(48):
+        self.total_pairs = needed_pairs
+        
+        for i in range(total_cards):
             icon = icons[i]
             pair_id = SELECTED_ICONS.index(icon)
             card = Card(i, pair_id, icon)
@@ -157,7 +169,8 @@ class GameWidget(QWidget):
         self.draw_modern_sidebar(painter, bg_x)
         
         # Kartlar (sağ taraf) - Modern tasarım
-        cols, rows = 8, 6
+        cols = self.cols
+        rows = self.rows
         game_width = self.width() - bg_x
         card_w = (game_width - 30) // cols - 4
         card_h = (self.height() - 100) // rows - 4
@@ -213,7 +226,7 @@ class GameWidget(QWidget):
         # Başlık
         painter.setPen(QColor(25, 103, 210))
         painter.setFont(QFont("Segoe UI", 16, QFont.Bold))
-        painter.drawText(15, 35, "🏆 Sıralama")
+        painter.drawText(15, 35, f"🏆 Sıralama ({self.grid_size})")
         
         # Alt çizgi
         painter.setPen(QPen(QColor(229, 229, 229), 1))
@@ -226,8 +239,8 @@ class GameWidget(QWidget):
         painter.drawText(50, 65, "Oyuncu")
         painter.drawText(200, 65, "Adımlar")
         
-        # Skor listesi
-        scores = self.score_manager.get_top_scores()
+        # Skor listesi - grid boyutuna göre
+        scores = self.score_manager.get_top_scores(self.grid_size)
         y_pos = 85
         
         painter.setFont(QFont("Segoe UI", 10, QFont.Normal))
@@ -290,7 +303,7 @@ class GameWidget(QWidget):
         
         painter.setPen(QColor(25, 103, 210))
         painter.setFont(QFont("Segoe UI", 14, QFont.Bold))
-        painter.drawText(start_x + 330, 45, f"{self.matched_pairs}/24")
+        painter.drawText(start_x + 330, 45, f"{self.matched_pairs}/{self.total_pairs}")
         
         # Reset Butonu - Modern Office Style
         self.draw_reset_button(painter)
@@ -359,7 +372,7 @@ class GameWidget(QWidget):
             second_card.is_matched = True
             self.matched_pairs += 1
             
-            if self.matched_pairs == 24:
+            if self.matched_pairs == self.total_pairs:
                 self.game_active = False
                 self.save_and_show_result()
         else:
@@ -374,15 +387,15 @@ class GameWidget(QWidget):
 
     def save_and_show_result(self):
         """Skoru kaydet ve sonuç göster"""
-        self.score_manager.add_score(self.player_name, 0, self.moves, self.matched_pairs)
+        self.score_manager.add_score(self.player_name, 0, self.moves, self.matched_pairs, self.grid_size)
         
         result_text = f"""
 Tebrikler {self.player_name}!
 
 🎯 Toplam Adımlar: {self.moves}
-✨ Eşleştirmeler: {self.matched_pairs}/24
+✨ Eşleştirmeler: {self.matched_pairs}/{self.total_pairs}
 
-📊 Sıralamaya Kaydedildi!
+📊 {self.grid_size} Sıralamaya Kaydedildi!
 """
         
         parent = self.parent()
@@ -404,34 +417,106 @@ class MainWindow(QMainWindow):
     def __init__(self):
         super().__init__()
         
+        # Varsayılan grid boyutu
+        self.grid_size = '6x8'
+        
         # Oyuncu adını sor
         self.player_name = self.get_player_name()
         if not self.player_name:
             sys.exit(0)
         
-        self.setWindowTitle(f"📋 Modern Eşleştirme - {self.player_name}")
+        self.setWindowTitle(f"📋 Modern Eşleştirme - {self.player_name} - {self.grid_size}")
         self.setGeometry(50, 50, 1400, 900)
         self.setStyleSheet("QMainWindow { background-color: #f5f5f5; }")
         
         # Skor yöneticisi
         self.score_manager = ScoreManager()
         
-        # Oyun widget'ı
-        game_widget = GameWidget(self.player_name, self.score_manager)
-        game_widget.setParent(self)
-        self.setCentralWidget(game_widget)
+        # Menü çubuğu oluştur
+        self.create_menu_bar()
         
-        self.game_widget = game_widget
-
+        # Oyun widget'ı
+        self.game_widget = GameWidget(self.player_name, self.score_manager, self.grid_size)
+        self.game_widget.setParent(self)
+        self.setCentralWidget(self.game_widget)
+    
+    def create_menu_bar(self):
+        """Menü çubuğu oluştur"""
+        menubar = self.menuBar()
+        menubar.setStyleSheet("QMenuBar { background-color: #f5f5f5; }")
+        
+        # Oyun menüsü
+        game_menu = menubar.addMenu("🎮 Oyun")
+        
+        # Yeni oyun
+        new_action = QAction("🆕 Yeni Oyun", self)
+        new_action.setShortcut("Ctrl+N")
+        new_action.triggered.connect(self.new_game)
+        game_menu.addAction(new_action)
+        
+        # Yeniden başlat
+        restart_action = QAction("🔄 Yeniden Başlat", self)
+        restart_action.setShortcut("Ctrl+R")
+        restart_action.triggered.connect(self.restart_game)
+        game_menu.addAction(restart_action)
+        
+        game_menu.addSeparator()
+        
+        # Kart adedi alt menüsü
+        grid_menu = QMenu("📊 Kart Adedi", self)
+        
+        for label, size in [("4x4 (16 kart)", "4x4"), ("4x6 (24 kart)", "4x6"),
+                          ("5x6 (30 kart)", "5x6"), ("4x8 (32 kart)", "4x8"),
+                          ("6x8 (48 kart)", "6x8")]:
+            action = QAction(label, self)
+            action.triggered.connect(lambda checked, s=size: self.change_grid_size(s))
+            grid_menu.addAction(action)
+        
+        game_menu.addMenu(grid_menu)
+        
+        game_menu.addSeparator()
+        
+        # Çıkış
+        exit_action = QAction("✖ Çıkış", self)
+        exit_action.setShortcut("Ctrl+Q")
+        exit_action.triggered.connect(self.close)
+        game_menu.addAction(exit_action)
+        
+        # Oyuncu menüsü
+        player_menu = menubar.addMenu("👤 Oyuncu")
+        
+        name_action = QAction("📝 İsim Değiştir", self)
+        name_action.triggered.connect(self.change_name)
+        player_menu.addAction(name_action)
+    
+    def new_game(self):
+        """Yeni oyun"""
+        name, ok = QInputDialog.getText(self, "🆕 Yeni Oyun", "Oyuncu adı:", text=self.player_name)
+        if ok and name.strip():
+            self.player_name = name.strip()
+            self.restart_game()
+    
+    def restart_game(self):
+        """Oyunu yeniden başlat"""
+        self.game_widget = GameWidget(self.player_name, self.score_manager, self.grid_size)
+        self.setCentralWidget(self.game_widget)
+        self.setWindowTitle(f"📋 Modern Eşleştirme - {self.player_name} - {self.grid_size}")
+    
+    def change_grid_size(self, grid_size):
+        """Grid boyutunu değiştir"""
+        self.grid_size = grid_size
+        self.restart_game()
+    
+    def change_name(self):
+        """İsim değiştir"""
+        name, ok = QInputDialog.getText(self, "👤 Oyuncu", "Yeni isminiz:", text=self.player_name)
+        if ok and name.strip():
+            self.player_name = name.strip()
+            self.setWindowTitle(f"📋 Modern Eşleştirme - {self.player_name} - {self.grid_size}")
+    
     def get_player_name(self):
         """Oyuncu adını sor"""
-        name, ok = QInputDialog.getText(
-            None,
-            "🎮 Hoş Geldiniz",
-            "Adınızı girin:",
-            text="Oyuncu"
-        )
-        
+        name, ok = QInputDialog.getText(None, "🎮 Hoş Geldiniz", "Adınızı girin:", text="Oyuncu")
         if ok and name.strip():
             return name.strip()
         return None
