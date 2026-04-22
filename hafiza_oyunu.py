@@ -26,7 +26,7 @@ CARD_PAIRS = 8
 # Modern renkler (MSOffice/OnlyOffice tarzı)
 COLORS = {
     'primary_bg': '#FAFAFA',
-    'secondary_bg': '#F5F5F5',
+    'secondary_bg': '#F0F0F0',
     'accent': '#0078D4',
     'accent_dark': '#106EBE',
     'success': '#107C10',
@@ -36,7 +36,7 @@ COLORS = {
     'border': '#D0D7DE',
     'card_back': '#1F6FEB',
     'card_front': '#FFFFFF',
-    'card_shadow': 'rgba(0, 0, 0, 0.15)',
+    'card_shadow': 'rgba(0, 0, 0, 0.12)',
 }
 
 # Kart ikonları (Unicode emoji ile) - 20 farklı ikon
@@ -133,7 +133,7 @@ class CardButton(QFrame):
             QFrame {{
                 background-color: qlineargradient(x1:0, y1:0, x2:1, y2:1, 
                     stop:0 #1a5fb4, stop:0.5 #1c71d7, stop:1 #1a5fb4);
-                border: 1px solid #3584e4;
+                border: none;
                 border-radius: 6px;
             }}
         """)
@@ -143,7 +143,7 @@ class CardButton(QFrame):
         self.setStyleSheet(f"""
             QFrame {{
                 background-color: {COLORS['card_front']};
-                border: 1px solid #d0d7de;
+                border: none;
                 border-radius: 6px;
             }}
         """)
@@ -165,7 +165,7 @@ class CardButton(QFrame):
         self.setStyleSheet(f"""
             QFrame {{
                 background-color: #dafbe1;
-                border: 2px solid {COLORS['success']};
+                border: none;
                 border-radius: 6px;
             }}
         """)
@@ -609,30 +609,33 @@ class MemoryGameWindow(QMainWindow):
         # Menü çubuğu
         self.create_menu_bar()
         
-        # Başlık
-        header = QWidget()
-        header.setStyleSheet(f"""
+        # Üst bar (oyuncu adı + hamle sayısı)
+        top_bar = QWidget()
+        top_bar.setFixedHeight(50)
+        top_bar.setStyleSheet(f"""
             QWidget {{
                 background-color: {COLORS['primary_bg']};
                 border-bottom: 1px solid {COLORS['border']};
-                padding: 8px 16px;
             }}
         """)
-        header_layout = QHBoxLayout()
+        top_layout = QHBoxLayout()
+        top_layout.setContentsMargins(20, 0, 20, 0)
         
-        title = QLabel("🧠 Hafıza Oyunu")
-        title.setFont(QFont("Segoe UI", 20, QFont.Weight.Bold))
-        title.setStyleSheet(f"color: {COLORS['accent']};")
-        
-        header_layout.addWidget(title)
-        header_layout.addStretch()
-        
+        # Oyuncu adı
         self.player_label = QLabel(f"👤 {self.player_name}")
-        self.player_label.setFont(QFont("Segoe UI", 14))
+        self.player_label.setFont(QFont("Segoe UI", 13, QFont.Weight.Medium))
         self.player_label.setStyleSheet(f"color: {COLORS['text_primary']};")
         
-        header_layout.addWidget(self.player_label)
-        header.setLayout(header_layout)
+        # Hamle sayısı
+        self.moves_label = QLabel(f"Hamle: {self.moves}")
+        self.moves_label.setFont(QFont("Segoe UI", 13, QFont.Weight.Medium))
+        self.moves_label.setStyleSheet(f"color: {COLORS['accent']};")
+        
+        top_layout.addWidget(self.player_label)
+        top_layout.addStretch()
+        top_layout.addWidget(self.moves_label)
+        
+        top_bar.setLayout(top_layout)
         
         # Oyun alanı
         game_area = QWidget()
@@ -651,47 +654,8 @@ class MemoryGameWindow(QMainWindow):
         game_layout.addLayout(self.grid_layout)
         game_area.setLayout(game_layout)
         
-        # Durum çubuğu
-        status_bar = QWidget()
-        status_bar.setStyleSheet(f"""
-            QWidget {{
-                background-color: {COLORS['primary_bg']};
-                border-top: 1px solid {COLORS['border']};
-                padding: 8px 16px;
-            }}
-        """)
-        status_layout = QHBoxLayout()
-        
-        self.moves_label = QLabel(f"Hamle: {self.moves}")
-        self.moves_label.setFont(QFont("Segoe UI", 13))
-        self.moves_label.setStyleSheet(f"color: {COLORS['text_secondary']};")
-        
-        status_layout.addWidget(self.moves_label)
-        status_layout.addStretch()
-        
-        restart_btn = QPushButton("🔄 Yeniden Başlat")
-        restart_btn.setFont(QFont("Segoe UI", 12))
-        restart_btn.setCursor(Qt.CursorShape.PointingHandCursor)
-        restart_btn.setStyleSheet(f"""
-            QPushButton {{
-                background-color: {COLORS['accent']};
-                color: white;
-                border: none;
-                padding: 8px 16px;
-                border-radius: 6px;
-            }}
-            QPushButton:hover {{
-                background-color: {COLORS['accent_dark']};
-            }}
-        """)
-        restart_btn.clicked.connect(self.restart_game)
-        
-        status_layout.addWidget(restart_btn)
-        status_bar.setLayout(status_layout)
-        
-        right_layout.addWidget(header)
+        right_layout.addWidget(top_bar)
         right_layout.addWidget(game_area, 1)
-        right_layout.addWidget(status_bar)
         
         right_panel.setLayout(right_layout)
         main_layout.addWidget(right_panel, 1)
