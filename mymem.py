@@ -7,9 +7,9 @@ import os
 from pathlib import Path
 from datetime import datetime
 
-from PyQt5.QtWidgets import QApplication, QMainWindow, QWidget, QInputDialog, QMessageBox
+from PyQt5.QtWidgets import QApplication, QMainWindow, QWidget, QInputDialog, QMessageBox, QMenu
 from PyQt5.QtCore import Qt, QRect, QTimer, QPoint
-from PyQt5.QtGui import QPainter, QColor, QFont, QPixmap, QPen, QBrush
+from PyQt5.QtGui import QPainter, QColor, QFont, QPixmap, QPen, QBrush, QAction
 from PIL import Image, ImageFilter, ImageDraw
 
 class Card:
