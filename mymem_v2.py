@@ -41,6 +41,9 @@ class ScoreManager:
             try:
                 with open(self.scores_file, 'r', encoding='utf-8') as f:
                     data = json.load(f)
+                    # Eski liste formatını yeni dict formatına çevir
+                    if isinstance(data, list):
+                        return {'4x4': [], '4x6': [], '5x6': [], '4x8': [], '6x8': []}
                     return data
             except:
                 return {'4x4': [], '4x6': [], '5x6': [], '4x8': [], '6x8': []}
