@@ -41,9 +41,6 @@ class ScoreManager:
             try:
                 with open(self.scores_file, 'r', encoding='utf-8') as f:
                     data = json.load(f)
-                    # Eski liste formatını yeni dict formatına çevir
-                    if isinstance(data, list):
-                        return {'4x4': [], '4x6': [], '5x6': [], '4x8': [], '6x8': []}
                     return data
             except:
                 return {'4x4': [], '4x6': [], '5x6': [], '4x8': [], '6x8': []}
@@ -433,11 +430,9 @@ class MainWindow(QMainWindow):
         self.setStyleSheet("QMainWindow { background-color: #f5f5f5; }")
         
         # Icon ayarla
-        icon_path = Path(__file__).parent / "mymem_icon.png"
+        icon_path = Path(__file__).parent / "mymem.png"
         if icon_path.exists():
             self.setWindowIcon(QIcon(str(icon_path)))
-        
-        # Skor yöneticisi
         self.score_manager = ScoreManager()
         
         # Menü çubuğu oluştur
@@ -520,9 +515,7 @@ class MainWindow(QMainWindow):
         name, ok = QInputDialog.getText(self, "👤 Oyuncu", "Yeni isminiz:", text=self.player_name)
         if ok and name.strip():
             self.player_name = name.strip()
-            self.game_widget.player_name = self.player_name
             self.setWindowTitle(f"📋 Modern Eşleştirme - {self.player_name} - {self.grid_size}")
-            self.game_widget.update()
     
     def get_player_name(self):
         """Oyuncu adını sor"""
