@@ -487,6 +487,10 @@ class MainWindow(QMainWindow):
         
         game_menu.addSeparator()
         
+        reset_action = QAction("🗑 Skorları Sıfırla", self)
+        reset_action.triggered.connect(self.reset_scores)
+        game_menu.addAction(reset_action)
+        
         # Çıkış
         exit_action = QAction("✖ Çıkış", self)
         exit_action.setShortcut("Ctrl+Q")
@@ -500,9 +504,6 @@ class MainWindow(QMainWindow):
         name_action.triggered.connect(self.change_name)
         player_menu.addAction(name_action)
         
-        reset_action = QAction("🗑 Skorları Sıfırla", self)
-        reset_action.triggered.connect(self.reset_scores)
-        player_menu.addAction(reset_action)
         
         help_menu = menubar.addMenu("❓ Yardım")
         
