@@ -9,7 +9,7 @@ from datetime import datetime
 
 from PyQt5.QtWidgets import QApplication, QMainWindow, QWidget, QInputDialog, QMessageBox, QMenu, QAction
 from PyQt5.QtCore import Qt, QRect, QTimer, QPoint
-from PyQt5.QtGui import QPainter, QColor, QFont, QPixmap, QPen, QBrush
+from PyQt5.QtGui import QPainter, QColor, QFont, QPixmap, QPen, QBrush, QIcon
 from PIL import Image, ImageFilter, ImageDraw
 
 # ============== KART SINIFI ==============
@@ -431,6 +431,11 @@ class MainWindow(QMainWindow):
         self.setWindowTitle(f"📋 Modern Eşleştirme - {self.player_name} - {self.grid_size}")
         self.setGeometry(50, 50, 1400, 900)
         self.setStyleSheet("QMainWindow { background-color: #f5f5f5; }")
+        
+        # Icon ayarla
+        icon_path = Path(__file__).parent / "mymem_icon.png"
+        if icon_path.exists():
+            self.setWindowIcon(QIcon(str(icon_path)))
         
         # Skor yöneticisi
         self.score_manager = ScoreManager()
