@@ -14,7 +14,7 @@ from PyQt6.QtWidgets import (
     QMenuBar, QMenu, QStatusBar, QFrame, QComboBox
 )
 from PyQt6.QtCore import Qt, QTimer, QPropertyAnimation, QEasingCurve, pyqtSignal, QRect
-from PyQt6.QtGui import QAction, QIcon, QFont, QColor, QPalette
+from PyQt6.QtGui import QAction, QIcon, QFont, QColor, QPalette, QGraphicsDropShadowEffect
 
 
 # ============== SABITLER ==============
@@ -94,19 +94,27 @@ def add_to_leaderboard(player_name, moves):
 
 # ============== KART WIDGETI ==============
 class CardButton(QFrame):
-    """Oyun kartı widget'ı."""
+    """Oyun kartı widget'ı - Okey taşı tarzı."""
     
     clicked_signal = pyqtSignal()
     
     def __init__(self, icon: str, card_id: int, width: int = 90, height: int = 120, parent=None):
         super().__init__(parent)
         self.icon = icon
-        self.card_id = card_id  # Benzersiz kart ID
+        self.card_id = card_id
         self.card_width = width
         self.card_height = height
         self.is_flipped = False
         self.is_matched = False
         self.is_locked = False
+        self.is_hovered = False
+        
+        # Gölge efekti (QGraphicsDropShadowEffect)
+        self.shadow = QGraphicsDropShadowEffect()
+        self.shadow.setBlurRadius(15)
+        self.shadow.setOffset(3, 3)
+        self.shadow.setColor(QColor(0, 0, 0, 120))
+        self.setGraphicsEffect(self.shadow)
         
         self.setup_ui()
         self.setCursor(Qt.CursorShape.PointingHandCursor)
@@ -115,64 +123,35 @@ class CardButton(QFrame):
         """Kullanıcı arayüzünü oluştur."""
         self.setFixedSize(self.card_width, self.card_height)
         self.setFrameStyle(QFrame.Shape.NoFrame)
-        
-        # Başlangıçta kart arkası görünür (kapalı)
         self.set_card_back()
         
-        # İkon label - ince kenarlı iskambil kağıdı gibi
         self.icon_label = QLabel(self.icon, self)
         self.icon_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        
-        # İkon boyutunu karta göre ayarla
         icon_size = min(self.card_width, self.card_height) * 0.45
-        self.icon_label.setStyleSheet(f"""
-            font-size: {icon_size:.0f}px;
-            background-color: transparent;
-        """)
+        self.icon_label.setStyleSheet(f"font-size: {icon_size:.0f}px; background-color: transparent;")
         self.icon_label.setGeometry(0, 0, self.card_width, self.card_height)
-        self.icon_label.hide()  # Başlangıçta gizli
-    
-    def set_card_size(self, width, height):
-        """Kart boyutunu dinamik olarak ayarla."""
-        self.card_width = width
-        self.card_height = height
-        self.setFixedSize(width, height)
-        self.icon_label.setGeometry(0, 0, width, height)
-        
-        # İkon boyutunu güncelle
-        icon_size = min(width, height) * 0.45
-        self.icon_label.setStyleSheet(f"""
-            font-size: {icon_size:.0f}px;
-            background-color: transparent;
-        """)
+        self.icon_label.hide()
     
     def set_card_back(self):
-        """Kart arkasını göster (kapalı) - iskambil kağıdı desenli."""
-        self.setStyleSheet(f"""
-            QFrame {{
-                background-color: qlineargradient(x1:0, y1:0, x2:1, y2:1, 
-                    stop:0 #1a5fb4, stop:0.5 #1c71d7, stop:1 #1a5fb4);
-                border: none;
-                border-radius: 6px;
-                box-shadow: 4px 4px 8px {COLORS['card_shadow']};
-            }}
+        """Kart arkası - okey taşı tarzı."""
+        self.setStyleSheet("""
+            QFrame {
+                background-color: qlineargradient(x1:0, y1:0, x2:1, y2:1, stop:0 #1a5fb4, stop:0.5 #1c71d7, stop:1 #1a5fb4);
+                border-radius: 8px;
+            }
         """)
     
     def set_card_front(self):
-        """Kart önünü göster (açık) - temiz beyaz iskambil kağıdı."""
+        """Kart önü - okey taşı tarzı."""
         self.setStyleSheet(f"""
             QFrame {{
                 background-color: {COLORS['card_front']};
-                border: none;
-                border-radius: 6px;
-                box-shadow: 4px 4px 8px {COLORS['card_shadow']};
+                border-radius: 8px;
             }}
         """)
     
     def flip(self, show_icon: bool):
-        """Kartı çevir."""
         self.is_flipped = show_icon
-        
         if show_icon:
             self.set_card_front()
             self.icon_label.show()
@@ -181,36 +160,31 @@ class CardButton(QFrame):
             self.icon_label.hide()
     
     def set_matched(self):
-        """Kartı eşleşmiş olarak işaretle."""
         self.is_matched = True
         self.setStyleSheet(f"""
             QFrame {{
                 background-color: #dafbe1;
-                border: none;
-                border-radius: 6px;
-                box-shadow: 4px 4px 8px {COLORS['card_shadow']};
+                border-radius: 8px;
             }}
         """)
     
     def mousePressEvent(self, event):
-        """Kart tıklandığında."""
         if not self.is_locked and not self.is_matched and not self.is_flipped:
             self.clicked_signal.emit()
         super().mousePressEvent(event)
     
     def enterEvent(self, event):
-        """Mouse üzerine geldiğinde."""
+        # Mouse hover - sadece gölge değişir, boyut değişmez
         if not self.is_matched and not self.is_flipped:
-            self.setFixedSize(
-                int(self.card_width * 1.04), 
-                int(self.card_height * 1.04)
-            )
+            self.shadow.setBlurRadius(20)
+            self.shadow.setOffset(4, 4)
         super().enterEvent(event)
     
     def leaveEvent(self, event):
-        """Mouse karttan ayrıldığında."""
+        # Mouse leave - gölgeyi normal boyuta getir
         if not self.is_matched and not self.is_flipped:
-            self.setFixedSize(self.card_width, self.card_height)
+            self.shadow.setBlurRadius(15)
+            self.shadow.setOffset(3, 3)
         super().leaveEvent(event)
 
 
