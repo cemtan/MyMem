@@ -135,6 +135,7 @@ class CardButton(QFrame):
                     stop:0 #1a5fb4, stop:0.5 #1c71d7, stop:1 #1a5fb4);
                 border: none;
                 border-radius: 6px;
+                box-shadow: 2px 2px 4px {COLORS['card_shadow']};
             }}
         """)
     
@@ -145,6 +146,7 @@ class CardButton(QFrame):
                 background-color: {COLORS['card_front']};
                 border: none;
                 border-radius: 6px;
+                box-shadow: 2px 2px 4px {COLORS['card_shadow']};
             }}
         """)
     
@@ -167,6 +169,7 @@ class CardButton(QFrame):
                 background-color: #dafbe1;
                 border: none;
                 border-radius: 6px;
+                box-shadow: 2px 2px 4px {COLORS['card_shadow']};
             }}
         """)
     
