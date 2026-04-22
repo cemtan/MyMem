@@ -428,7 +428,7 @@ class MainWindow(QMainWindow):
         if not self.player_name:
             sys.exit(0)
         
-        self.setWindowTitle(f"📋 Modern Eşleştirme - {self.player_name} - {self.grid_size}")
+        self.setWindowTitle(f"Bellek Oyunu - {self.player_name} - {self.grid_size}")
         self.setGeometry(50, 50, 1400, 900)
         self.setStyleSheet("QMainWindow { background-color: #f5f5f5; }")
         
@@ -499,6 +499,17 @@ class MainWindow(QMainWindow):
         name_action = QAction("📝 İsim Değiştir", self)
         name_action.triggered.connect(self.change_name)
         player_menu.addAction(name_action)
+        
+        reset_action = QAction("🗑 Skorları Sıfırla", self)
+        reset_action.triggered.connect(self.reset_scores)
+        player_menu.addAction(reset_action)
+        
+        help_menu = menubar.addMenu("❓ Yardım")
+        
+        help_action = QAction("📖 Nasıl Oynanır", self)
+        help_action.setShortcut("F1")
+        help_action.triggered.connect(self.show_help)
+        help_menu.addAction(help_action)
     
     def new_game(self):
         """Yeni oyun"""
@@ -511,7 +522,38 @@ class MainWindow(QMainWindow):
         """Oyunu yeniden başlat"""
         self.game_widget = GameWidget(self.player_name, self.score_manager, self.grid_size)
         self.setCentralWidget(self.game_widget)
-        self.setWindowTitle(f"📋 Modern Eşleştirme - {self.player_name} - {self.grid_size}")
+        self.setWindowTitle(f"Bellek Oyunu - {self.player_name} - {self.grid_size}")
+    
+    def reset_scores(self):
+        """Skorları sıfırla"""
+        reply = QMessageBox.question(self, "Skorları Sıfırla", 
+            "Tüm skorları silmek istediğinize emin misiniz?",
+            QMessageBox.Yes | QMessageBox.No, QMessageBox.No)
+        if reply == QMessageBox.Yes:
+            self.score_manager.leaderboard = {'4x4': [], '4x6': [], '5x6': [], '4x8': [], '6x8': []}
+            try:
+                with open(self.score_manager.scores_file, 'w') as f:
+                    json.dump(self.score_manager.leaderboard, f, ensure_ascii=False, indent=2)
+            except:
+                pass
+            if self.game_widget:
+                self.game_widget.update()
+    
+    def show_help(self):
+        """Yardım göster"""
+        help_text = """🧠 Bellek Oyunu v1.0
+
+Bir kart eşleştirme oyunu.
+
+Nasıl Oynanır:
+• Her kartın bir eşi var
+• Kartlara tıklayarak çevirin
+• Aynı ikonlu kartları eşleştirin
+• En az hamlede kazanmaya çalışın!
+
+Platform: Linux KDE uyumlu"""
+
+        QMessageBox.information(self, "Yardım", help_text)
     
     def change_grid_size(self, grid_size):
         """Grid boyutunu değiştir"""
@@ -523,7 +565,7 @@ class MainWindow(QMainWindow):
         name, ok = QInputDialog.getText(self, "👤 Oyuncu", "Yeni isminiz:", text=self.player_name)
         if ok and name.strip():
             self.player_name = name.strip()
-            self.setWindowTitle(f"📋 Modern Eşleştirme - {self.player_name} - {self.grid_size}")
+            self.setWindowTitle(f"Bellek Oyunu - {self.player_name} - {self.grid_size}")
             if hasattr(self, 'game_widget') and self.game_widget:
                 self.game_widget.player_name = self.player_name
                 self.game_widget.update()
