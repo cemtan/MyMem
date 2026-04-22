@@ -14,7 +14,7 @@ from PyQt6.QtWidgets import (
     QMenuBar, QMenu, QStatusBar, QFrame, QComboBox
 )
 from PyQt6.QtCore import Qt, QTimer, QPropertyAnimation, QEasingCurve, pyqtSignal, QRect
-from PyQt6.QtGui import QAction, QIcon, QFont, QColor, QPalette, QGraphicsDropShadowEffect
+from PyQt6.QtGui import QAction, QIcon, QFont, QColor, QPalette
 
 
 # ============== SABITLER ==============
@@ -109,13 +109,6 @@ class CardButton(QFrame):
         self.is_locked = False
         self.is_hovered = False
         
-        # Gölge efekti (QGraphicsDropShadowEffect)
-        self.shadow = QGraphicsDropShadowEffect()
-        self.shadow.setBlurRadius(15)
-        self.shadow.setOffset(3, 3)
-        self.shadow.setColor(QColor(0, 0, 0, 120))
-        self.setGraphicsEffect(self.shadow)
-        
         self.setup_ui()
         self.setCursor(Qt.CursorShape.PointingHandCursor)
     
@@ -134,10 +127,22 @@ class CardButton(QFrame):
     
     def set_card_back(self):
         """Kart arkası - okey taşı tarzı."""
+        # Altta hafif koyu bir katman ile gölge efekti
         self.setStyleSheet("""
             QFrame {
                 background-color: qlineargradient(x1:0, y1:0, x2:1, y2:1, stop:0 #1a5fb4, stop:0.5 #1c71d7, stop:1 #1a5fb4);
-                border-radius: 8px;
+                border-radius: 10px;
+            }
+            QFrame::after {
+                content: '';
+                position: absolute;
+                bottom: -4px;
+                right: -4px;
+                width: 100%;
+                height: 100%;
+                background-color: rgba(0,0,0,0.2);
+                border-radius: 10px;
+                z-index: -1;
             }
         """)
     
@@ -146,7 +151,18 @@ class CardButton(QFrame):
         self.setStyleSheet(f"""
             QFrame {{
                 background-color: {COLORS['card_front']};
-                border-radius: 8px;
+                border-radius: 10px;
+            }}
+            QFrame::after {{
+                content: '';
+                position: absolute;
+                bottom: -4px;
+                right: -4px;
+                width: 100%;
+                height: 100%;
+                background-color: rgba(0,0,0,0.15);
+                border-radius: 10px;
+                z-index: -1;
             }}
         """)
     
@@ -164,7 +180,18 @@ class CardButton(QFrame):
         self.setStyleSheet(f"""
             QFrame {{
                 background-color: #dafbe1;
-                border-radius: 8px;
+                border-radius: 10px;
+            }}
+            QFrame::after {{
+                content: '';
+                position: absolute;
+                bottom: -4px;
+                right: -4px;
+                width: 100%;
+                height: 100%;
+                background-color: rgba(0,100,0,0.15);
+                border-radius: 10px;
+                z-index: -1;
             }}
         """)
     
@@ -174,17 +201,15 @@ class CardButton(QFrame):
         super().mousePressEvent(event)
     
     def enterEvent(self, event):
-        # Mouse hover - sadece gölge değişir, boyut değişmez
+        # Mouse hover - hafif büyüme efekti
         if not self.is_matched and not self.is_flipped:
-            self.shadow.setBlurRadius(20)
-            self.shadow.setOffset(4, 4)
+            self.setFixedSize(int(self.card_width * 1.02), int(self.card_height * 1.02))
         super().enterEvent(event)
     
     def leaveEvent(self, event):
-        # Mouse leave - gölgeyi normal boyuta getir
+        # Mouse leave - boyutu geri al
         if not self.is_matched and not self.is_flipped:
-            self.shadow.setBlurRadius(15)
-            self.shadow.setOffset(3, 3)
+            self.setFixedSize(self.card_width, self.card_height)
         super().leaveEvent(event)
 
 
