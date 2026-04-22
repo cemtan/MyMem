@@ -515,7 +515,9 @@ class MainWindow(QMainWindow):
         name, ok = QInputDialog.getText(self, "👤 Oyuncu", "Yeni isminiz:", text=self.player_name)
         if ok and name.strip():
             self.player_name = name.strip()
+            self.game_widget.player_name = self.player_name
             self.setWindowTitle(f"📋 Modern Eşleştirme - {self.player_name} - {self.grid_size}")
+            self.game_widget.update()
     
     def get_player_name(self):
         """Oyuncu adını sor"""
