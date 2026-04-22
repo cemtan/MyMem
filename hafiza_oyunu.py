@@ -36,7 +36,7 @@ COLORS = {
     'border': '#D0D7DE',
     'card_back': '#1F6FEB',
     'card_front': '#FFFFFF',
-    'card_shadow': 'rgba(0, 0, 0, 0.12)',
+    'card_shadow': 'rgba(0, 0, 0, 0.25)',
 }
 
 # Kart ikonları (Unicode emoji ile) - 20 farklı ikon
@@ -98,10 +98,12 @@ class CardButton(QFrame):
     
     clicked_signal = pyqtSignal()
     
-    def __init__(self, icon: str, card_id: int, parent=None):
+    def __init__(self, icon: str, card_id: int, width: int = 90, height: int = 120, parent=None):
         super().__init__(parent)
         self.icon = icon
         self.card_id = card_id  # Benzersiz kart ID
+        self.card_width = width
+        self.card_height = height
         self.is_flipped = False
         self.is_matched = False
         self.is_locked = False
@@ -111,7 +113,7 @@ class CardButton(QFrame):
     
     def setup_ui(self):
         """Kullanıcı arayüzünü oluştur."""
-        self.setFixedSize(90, 120)
+        self.setFixedSize(self.card_width, self.card_height)
         self.setFrameStyle(QFrame.Shape.NoFrame)
         
         # Başlangıçta kart arkası görünür (kapalı)
@@ -120,12 +122,29 @@ class CardButton(QFrame):
         # İkon label - ince kenarlı iskambil kağıdı gibi
         self.icon_label = QLabel(self.icon, self)
         self.icon_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        self.icon_label.setStyleSheet("""
-            font-size: 42px;
+        
+        # İkon boyutunu karta göre ayarla
+        icon_size = min(self.card_width, self.card_height) * 0.45
+        self.icon_label.setStyleSheet(f"""
+            font-size: {icon_size:.0f}px;
             background-color: transparent;
         """)
-        self.icon_label.setGeometry(0, 0, 90, 120)
+        self.icon_label.setGeometry(0, 0, self.card_width, self.card_height)
         self.icon_label.hide()  # Başlangıçta gizli
+    
+    def set_card_size(self, width, height):
+        """Kart boyutunu dinamik olarak ayarla."""
+        self.card_width = width
+        self.card_height = height
+        self.setFixedSize(width, height)
+        self.icon_label.setGeometry(0, 0, width, height)
+        
+        # İkon boyutunu güncelle
+        icon_size = min(width, height) * 0.45
+        self.icon_label.setStyleSheet(f"""
+            font-size: {icon_size:.0f}px;
+            background-color: transparent;
+        """)
     
     def set_card_back(self):
         """Kart arkasını göster (kapalı) - iskambil kağıdı desenli."""
@@ -135,7 +154,7 @@ class CardButton(QFrame):
                     stop:0 #1a5fb4, stop:0.5 #1c71d7, stop:1 #1a5fb4);
                 border: none;
                 border-radius: 6px;
-                box-shadow: 2px 2px 4px {COLORS['card_shadow']};
+                box-shadow: 4px 4px 8px {COLORS['card_shadow']};
             }}
         """)
     
@@ -146,7 +165,7 @@ class CardButton(QFrame):
                 background-color: {COLORS['card_front']};
                 border: none;
                 border-radius: 6px;
-                box-shadow: 2px 2px 4px {COLORS['card_shadow']};
+                box-shadow: 4px 4px 8px {COLORS['card_shadow']};
             }}
         """)
     
@@ -169,7 +188,7 @@ class CardButton(QFrame):
                 background-color: #dafbe1;
                 border: none;
                 border-radius: 6px;
-                box-shadow: 2px 2px 4px {COLORS['card_shadow']};
+                box-shadow: 4px 4px 8px {COLORS['card_shadow']};
             }}
         """)
     
@@ -182,13 +201,16 @@ class CardButton(QFrame):
     def enterEvent(self, event):
         """Mouse üzerine geldiğinde."""
         if not self.is_matched and not self.is_flipped:
-            self.setFixedSize(94, 124)  # Hafif büyüme efekti
+            self.setFixedSize(
+                int(self.card_width * 1.04), 
+                int(self.card_height * 1.04)
+            )
         super().enterEvent(event)
     
     def leaveEvent(self, event):
         """Mouse karttan ayrıldığında."""
         if not self.is_matched and not self.is_flipped:
-            self.setFixedSize(90, 120)
+            self.setFixedSize(self.card_width, self.card_height)
         super().leaveEvent(event)
 
 
@@ -907,11 +929,33 @@ class MemoryGameWindow(QMainWindow):
         selected_icons = CARD_ICONS[:num_pairs] * 2  # Gerekli kadar ikon
         random.shuffle(selected_icons)
         
+        # Oyun alanı boyutuna göre kart boyutunu hesapla
+        game_area = self.findChild(QWidget)
+        card_width = 90
+        card_height = 120
+        
+        if game_area:
+            available_width = self.width() - 280  # Sidebar ve marjin
+            available_height = self.height() - 150  # Üst bar, menü ve marjin
+            
+            # Her satır ve sütun için alan (8px boşluk)
+            col_space = available_width / self.cols
+            row_space = available_height / self.rows
+            
+            # Kart boyutunu kareye yakın tut
+            card_size = min(col_space, row_space)
+            card_width = int(card_size * 0.9)
+            card_height = int(card_width * 1.33)  # İskambil kağıdı oranı
+        
+        # Grid boşluğunu kart boyutuna göre ayarla
+        spacing = int(card_width * 0.08)
+        self.grid_layout.setSpacing(spacing)
+        
         # Izgaraya yerleştir
         index = 0
         for row in range(self.rows):
             for col in range(self.cols):
-                card = CardButton(selected_icons[index], index)  # Benzersiz ID
+                card = CardButton(selected_icons[index], index, card_width, card_height)
                 card.clicked_signal.connect(lambda c=card: self.on_card_click(c))
                 self.grid_layout.addWidget(card, row, col)
                 self.cards.append(card)
